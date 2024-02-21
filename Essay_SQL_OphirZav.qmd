@@ -1,0 +1,61 @@
+---
+title: "Essay_SQL_OphirZavitan"
+format: html
+editor: visual
+---
+
+## Question 1
+
+First of all, I'll load the packages and the data for the essay:
+
+```{r}
+
+library(DBI)
+library(dplyr)
+library(dbplyr)
+library(RSQLite)
+library(odbc)
+library(ggplot2)
+
+con_chocolate <- DBI::dbConnect(drv = RSQLite::SQLite(),
+dbname = "chocolate.sqlite")
+
+#| results: hide
+```
+
+**now for interpretation of what the client wanted:**
+
+the client wanted the customer which ordered with the largest sum of money since 01/01/2023, his id, name and address, and the total amount of money he spent.
+
+the query creates a temporary table named total_orders which includes sum_total (the sum of price\*amount of each product from orders). join them the candy_names and price from products via LEFT JOIN based on pid (which is in the 2 tables) and on the condition of products bought after 01/01/2023. then the data is grouped by customer's id - the sum of each customer's purchases, then the customer's data is joined (name&address) via LEFT JOIN again (using cid as reference this time), ordering by descending value and limiting to 1 to get the highest one of them all (best customer of 2023 probably).
+
+running the query:
+
+```{sql, connection = con_chocolate, output.var = "chocolate.sqlite"}
+
+WITH total_orders AS (
+SELECT cid, SUM(Price * amount) AS sum_total
+FROM `orders`
+LEFT JOIN products USING (pid)
+WHERE (sale_date > '2023-01-01')
+GROUP BY cid
+)
+SELECT *
+FROM total_orders
+LEFT JOIN customers USING (cid)
+ORDER BY sum_total DESC
+LIMIT 1
+
+```
+
+## Question 2
+
+I'll create the query to answer the question:
+
+```{sql, connection = con_chocolate, output.var = "chocolate.sqlite"}
+
+WITH best_saleseman AS (
+SELECT * FROM salesreps
+GROUP BY year_joined
+)
+```
