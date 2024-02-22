@@ -10,6 +10,9 @@ First of all, I'll load the packages and the data for the essay:
 
 ```{r}
 
+#| results: hide
+#| warnings: false
+
 library(DBI)
 library(dplyr)
 library(dbplyr)
@@ -20,8 +23,7 @@ library(ggplot2)
 con_chocolate <- DBI::dbConnect(drv = RSQLite::SQLite(),
 dbname = "chocolate.sqlite")
 
-#| results: hide
-#| warnings: false
+
 ```
 
 **now for interpretation of what the client wanted:**
@@ -123,6 +125,6 @@ FROM solution
 ```
 
 Well, after this long query I can say that Pryor, Briana was the sales rep with the largest number of sales compared to the average of all sales reps that were recruited in the same year as him.\
-He has 177 sales, which is 36 sales more than the average of all sales reps that were recruited in the same year as him. \
-His best customer is al-Yousef, Fikri. \
+He has 177 sales, which is 36 sales more than the average of all sales reps that were recruited in the same year as him.\
+His best customer is al-Yousef, Fikri.\
 His top selling candy is Cookies 'n Cream.
