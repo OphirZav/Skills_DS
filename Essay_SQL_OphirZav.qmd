@@ -21,6 +21,7 @@ con_chocolate <- DBI::dbConnect(drv = RSQLite::SQLite(),
 dbname = "chocolate.sqlite")
 
 #| results: hide
+#| warnings: false
 ```
 
 **now for interpretation of what the client wanted:**
@@ -48,14 +49,80 @@ LIMIT 1
 
 ```
 
+The answer is the customer Beieler, Joshua, with cid of 822. His address (In the US) is 1866 Smith St., Jacobson, Michigan. He ordered at a total sum of 1057.03.
+
 ## Question 2
 
 I'll create the query to answer the question:
 
-```{sql, connection = con_chocolate, output.var = "chocolate.sqlite"}
+```{sql, connection = con_chocolate, output.var = "Solution_Q2"}
 
-WITH best_saleseman AS (
-SELECT * FROM salesreps
-GROUP BY year_joined
-)
+
+
+WITH salesman_sales AS (
+SELECT srid, COUNT(amount) AS sales_per_rep
+FROM orders 
+GROUP BY srid),
+
+avg_per_seniority AS (
+SELECT year_joined, AVG(sales_per_rep) AS avg_per_seniority
+FROM salesman_sales
+JOIN salesreps USING (srid)
+GROUP BY year_joined, Name),
+
+best_selling AS (
+SELECT srid, salesreps.Name AS salesman_name, year_joined, sales_per_rep, avg_per_seniority, (sales_per_rep - avg_per_seniority) AS difference
+FROM salesreps
+JOIN salesman_sales USING (srid)
+JOIN avg_per_seniority USING (year_joined)
+ORDER by difference DESC
+LIMIT 1),
+
+top_customer_for_best_selling_rep AS (
+SELECT cid, srid, SUM(amount * Price) AS total_orders_per_rep
+FROM orders
+JOIN products ON products.pid = orders.pid
+LEFT JOIN best_selling USING (srid)
+WHERE best_selling.srid IS NOT NULL
+GROUP BY cid, srid
+ORDER BY total_orders_per_rep DESC
+LIMIT 1),
+
+top_cus_name AS (
+SELECT * 
+FROM top_customer_for_best_selling_rep
+JOIN customers USING (cid)),
+
+top_selling AS (
+SELECT orders.srid, pid, SUM(amount) AS total_sales
+FROM orders
+JOIN products USING (pid)
+LEFT JOIN best_selling ON orders.srid = best_selling.srid
+WHERE best_selling.srid IS NOT NULL
+GROUP BY orders.srid, pid
+ORDER by total_sales DESC
+LIMIT 1),
+
+top_selling_name AS (
+SELECT * 
+FROM top_selling
+JOIN products USING (pid)),
+
+solution AS (
+SELECT * 
+FROM top_selling_name
+JOIN top_cus_name
+JOIN best_selling)
+
+SELECT salesman_name,
+solution.sales_per_rep AS best_rep_sales, difference, 
+solution.Name AS top_customer_name,
+solution.candy_names AS top_candy_name
+FROM solution
+
 ```
+
+Well, after this long query I can say that Pryor, Briana was the sales rep with the largest number of sales compared to the average of all sales reps that were recruited in the same year as him.\
+He has 177 sales, which is 36 sales more than the average of all sales reps that were recruited in the same year as him. \
+His best customer is al-Yousef, Fikri. \
+His top selling candy is Cookies 'n Cream.
